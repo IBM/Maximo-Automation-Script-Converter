@@ -169,12 +169,11 @@ def extract_package_and_class(file_content):
 
 
 # Example usage
+folder_path = input("Enter the path to the folder containing custom Java classes: ")
 
-# Path to the folder containing .java files
-folder_path = "PATH TO FOLDER WHERE CUSTOM JAVA CLASSES ARE STORED"
-
-# Process all .java files in the folder
+# Process all .java files in the specified folder
 process_java_files_in_folder(folder_path)
+
 
 
 
