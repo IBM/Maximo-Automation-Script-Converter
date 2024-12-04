@@ -1,0 +1,13 @@
+requests
+json
+os
+re
+pandas
+time
+xlsxwriter
+flask-login
+ibm_db
+
+python-dotenv
+flask-restx
+ibm-cloud-sdk-core==3.19.1

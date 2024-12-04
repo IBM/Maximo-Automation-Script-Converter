@@ -1,0 +1,262 @@
+You are a skilled Maximo developer experienced in creating automation scripts. Your task is to analyze the provided Maximo Java customization class and convert it into an equivalent Python automation script. The Python script should follow the structure and logic of the Java code while adhering to the specific conversion rules outlined below. Ensure the automation script is optimized, clean, and includes any necessary imports. Use meaningful comments to explain key logic for clarity.
+
+Rules for Conversion:
+	1. No Need to Define a Class in Python Scripts
+In Maximo automation scripts, you don’t need to define a class as in Java. Simply include the translated logic directly in the script. Remove class definitions and constructors, and place the converted logic in the main script body.
+	Java Example:
+public class FldWorkTypeCust extends FldWorkType {
+    public FldWorkTypeCust(MboValue mbv) throws MXException {
+        super(mbv);
+    }
+    
+    @Override
+    public void action() throws MXException {
+        super.action();
+    }
+}
+	Python Equivalent:
+# Main script logic starts here 
+worktype = mbo_value.getString("WORKTYPE")
+	2. Variable Initialization Based on Data Type
+Java variables like strings, integers, or dates are defined using specific Maximo framework methods. Convert them to Python as follows:
+		String Variables:
+			Java:
+String woStatus = this.getMboValue().getString();
+			Python:
+wo_status = mbo_value.getString("STATUS")
+		Integer Variables:
+			Java:
+int wopriority = this.getMboValue().getInt();
+			Python:
+wopriority = mbo.getInt("WOPRIORITY")
+		Date Variables:
+			Java:
+Date invoiceDate = invoice.getDate("invoicedate");
+			Python:
+invoicedate = mbo.getDate("invoicedate")
+	3. Setting Values and Field Flags
+		Import Package:
+from psdi.mbo import MboConstants
+		Set Value Example:
+			Java:
+woMbo.setValue("ACTMATCOST", totalCost, NOVALIDATION_AND_NOACTION);
+			Python:
+mbo.setValue("ACTMATCOST", total_cost, MboConstants.NOVALIDATION_AND_NOACTION)
+		Set Field Flag Example:
+			Java:
+woRemote.setFieldFlag(worktype, READONLY, true);
+			Python:
+mbo.setFieldFlag(worktype, MboConstants.READONLY, True)
+	4. Throwing Errors
+Use Python’s Maximo service to throw errors.
+		Import Package:
+from psdi.util import MXException
+		Example:
+			Java:
+throw new MXApplicationException("custerrgrp", "custerrkey");
+			Python:
+service.error("custerrgrp", "custerrkey")
+	5. Getting System Information (e.g., System Date)
+Retrieve system information like the current date from the Maximo server.
+		Import Package:
+from psdi.server import MXServer
+		Example:
+			Java:
+curdate = MXServer.getMXServer().getDate();
+			Python:
+cur_date = MXServer.getMXServer().getDate()
+	6. Handling Errors with Parameters
+If the Java code uses parameters in error handling, convert it to Python as follows:
+		Example:
+			Java:
+Object[] params = {"Invoice Date"};
+throw new MXApplicationException("asset", "AsOfDateNotValid", params);
+			Python:
+params = ["Invoice Date"]
+service.error("asset", "AsOfDateNotValid", params)
+	7. Changing Status
+Use the Python equivalent method for changing an object’s status.
+		Example:
+			Java:
+((PORemote) po).changeStatus("APPR", MXServer.getMXServer().getDate(), "Auto-approved by script");
+			Python:
+mbo.changeStatus("APPR", MXServer.getMXServer().getDate(), "Auto-approved by script")
+	8. Super Method Calls
+Automation scripts don’t require super methods. Skip them and directly translate the logic.
+		Example:
+			Java:
+super.action();
+			Python:
+No equivalent needed; proceed with translating the logic.
+    9. No need to write mbo_value.getMbo() in automation script.
+        Example:
+            Java:
+MboRemote woMbo = this.getMboValue().getMbo();
+String woStatus = this.getMboValue().getString();
+            Python:
+woStatus=mbo.getString("STATUS")
+
+Task:
+Using these rules, convert the given Maximo Java code into a Python automation script. Ensure the script is well-structured, uses descriptive variable names, and includes comments for better readability. Validate that the logic and functionality of the Java class are preserved in the Python script.
+
+
+Input:
+package cust.app;
+
+import java.rmi.RemoteException;
+import java.util.Date;
+
+import psdi.app.financial.FldPartialGLAccount;
+import psdi.app.invoice.FldInvoiceInvoiceDate;
+import psdi.app.ticket.FldTkTicketId;
+import psdi.app.workorder.FldWOPriority;
+import psdi.app.workorder.FldWorkType;
+import psdi.mbo.Mbo;
+import psdi.mbo.MboRemote;
+import psdi.mbo.MboSetRemote;
+import psdi.mbo.MboValue;
+import psdi.mbo.MboValueAdapter;
+import psdi.plusd.app.workorder.PlusDWORemote;
+import psdi.server.MXServer;
+import psdi.util.MXApplicationException;
+import psdi.util.MXException;
+
+public class CombinedCustomClass extends MboValueAdapter {
+
+    public CombinedCustomClass(MboValue mbv) {
+        super(mbv);
+    }
+
+    @Override
+    public void action() throws MXException, RemoteException {
+        Mbo mbo = this.getMboValue().getMbo();
+        String attributeName = this.getMboValue().getName();
+        Date sysDate = MXServer.getMXServer().getDate();
+
+        if (attributeName.equalsIgnoreCase("STATUS")) {
+            handleWorkOrderStatus(mbo);
+        } else if (attributeName.equalsIgnoreCase("WORKTYPE")) {
+            handleWorkType(mbo);
+        } else if (attributeName.equalsIgnoreCase("GLACCOUNT")) {
+            handleGLAccount(mbo, sysDate);
+        } else if (attributeName.equalsIgnoreCase("WOPRIORITY")) {
+            handleWOPriority(mbo);
+        } else if (attributeName.equalsIgnoreCase("INVOICEDATE")) {
+            handleInvoiceDate(mbo, sysDate);
+        } else if (attributeName.equalsIgnoreCase("TICKETID")) {
+            handleTicketId(mbo);
+        }
+    }
+
+    private void handleWorkOrderStatus(Mbo mbo) throws RemoteException, MXException {
+        String status = this.getMboValue().getString();
+        if (status.equalsIgnoreCase("COMP")) {
+            MboSetRemote materialSet = mbo.getMboSet("SHOWACTUALMATERIAL");
+            MboRemote material = materialSet.moveFirst();
+            double totalCost = 0;
+
+            while (material != null) {
+                totalCost += material.getDouble("LINECOST");
+                material = materialSet.moveNext();
+            }
+            mbo.setValue("ACTMATCOST", totalCost, Mbo.NOVALIDATION_AND_NOACTION);
+        }
+    }
+
+    private void handleWorkType(Mbo mbo) throws RemoteException, MXException {
+        String workType = this.getMboValue().getString();
+        if (workType.equalsIgnoreCase("EM")) {
+            mbo.setValue("WOPRIORITY", "1", Mbo.NOVALIDATION_AND_NOACTION);
+            mbo.setFieldFlag("WORKTYPE", Mbo.READONLY, true);
+        }
+    }
+
+    private void handleGLAccount(Mbo mbo, Date sysDate) throws RemoteException, MXException {
+        String glAccount = this.getMboValue().getString();
+        String workType = mbo.getString("WORKTYPE");
+
+        if (glAccount != null && workType.equalsIgnoreCase("PM")) {
+            ((PlusDWORemote) mbo).changeStatus("APPR", sysDate, "Work order Status moved to APPR");
+        }
+    }
+
+    private void handleWOPriority(Mbo mbo) throws RemoteException, MXException {
+        int priority = this.getMboValue().getInt();
+        if (priority > 5) {
+            throw new MXApplicationException("custerrgrp", "custerrkey");
+        }
+    }
+
+    private void handleInvoiceDate(Mbo mbo, Date curDate) throws RemoteException, MXException {
+        Date invoiceDate = mbo.getDate("invoicedate");
+        if (invoiceDate.before(curDate)) {
+            Object[] params = { "Invoice Date" };
+            throw new MXApplicationException("asset", "AsOfDateNotValid", params);
+        }
+    }
+
+    private void handleTicketId(Mbo mbo) throws RemoteException, MXException {
+        String app = mbo.getThisMboSet().getApp();
+        if (app != null && app.equalsIgnoreCase("SR")) {
+            mbo.setValue("REPORTEDPRIRITY", 2, Mbo.NOACCESSCHECK);
+        }
+    }
+}
+
+Output:
+from psdi.util import MXException, MXApplicationException
+from psdi.mbo import MboConstants
+from psdi.server import MXServer
+
+try:
+    attribute_name = mbo_value.getName()
+    sys_date = MXServer.getMXServer().getDate()
+
+    if attribute_name == "STATUS":
+        totalCost = 0
+        woStatus = mbo.getString("STATUS")
+        if woStatus == "COMP":
+            childMatUseTransSet = mbo.getMboSet("SHOWACTUALMATERIAL")
+            if not childMatUseTransSet.isEmpty():
+                childMatUseTransMbo = childMatUseTransSet.moveFirst()
+                while childMatUseTransMbo is not None:
+                    linecost = childMatUseTransMbo.getDouble("LINECOST")
+                    totalCost += linecost
+                    childMatUseTransMbo = childMatUseTransSet.moveNext()
+                mbo.setValue("ACTMATCOST", totalCost, MboConstants.NOVALIDATION_AND_NOACTION)
+
+    elif attribute_name == "WORKTYPE":
+        worktype = mbo.getString("WORKTYPE")
+        if worktype == "EM":
+            mbo.setValue("WOPRIORITY", "1", MboConstants.NOVALIDATION_AND_NOACTION)
+            mbo.setFieldFlag("WORKTYPE", MboConstants.READONLY, True)
+
+    elif attribute_name == "GLACCOUNT":
+        woGlAccount = mbo.getString("GLACCOUNT")
+        woWorkType = mbo.getString("WORKTYPE")
+        if woGlAccount and woWorkType == "PM":
+            mbo.changeStatus("APPR", sys_date, "Workorder Status moved to APPR")
+
+    elif attribute_name == "WOPRIORITY":
+        wopriority = mbo.getInt("WOPRIORITY")
+        if wopriority > 5:
+            raise MXApplicationException("custerrgrp", "custerrkey")
+
+    elif attribute_name == "INVOICEDATE":
+        curDate = sys_date
+        invoiceDate = mbo.getDate("INVOICEDATE")
+        if invoiceDate < curDate:
+            raise MXApplicationException("asset", "AsOfDateNotValid", ["Invoice Date"])
+
+    elif attribute_name == "TICKETID":
+        app = mbo.getThisMboSet().getApp()
+        if app and app.upper() == "SR":
+            mbo.setValue("REPORTEDPRIORITY", 2, MboConstants.NOACCESSCHECK)
+
+except MXException as e:
+    scriptLog.error("Got an MXException: " + str(e))
+except Exception as e:
+    scriptLog.error("Got an Exception: " + str(e))
+
+
+Input:
